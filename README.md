@@ -1,2 +1,2 @@
-# Music-Band
-a full stack website in ts for music band with extensive ticket merch shop and subscription model
+# portfolio
+portfolio that will have a kubnets setup for hosting my projects and logic behind exploring them
