@@ -1,90 +1,64 @@
-// File: src/app/register/page.tsx
+// src/app/register/page.tsx
 
 'use client';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
+import { register } from '@/lib/api';
 
 export default function Register() {
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password }),
-      });
-
-      if (response.ok) {
-        router.push('/login');
-      } else {
-        const data = await response.json();
-        setError(data.error || 'Registration failed');
-      }
+      await register(email, password, name);
+      router.push('/login');
     } catch (error) {
-      setError('An error occurred. Please try again.');
-    } finally {
-      setIsLoading(false);
+      setError('Failed to register. Please try again.');
     }
   };
 
   return (
-    <Layout>
-      <div className="max-w-md mx-auto mt-10">
-        <h1 className="text-3xl font-bold mb-6 text-primary-800">Register</h1>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
+    <Layout title="Register | Music Band">
+      <div className="max-w-md mx-auto">
+        <h1 className="text-3xl font-bold mb-6">Register</h1>
+        {error && <p className="text-error-500 mb-4">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="username" className="block mb-1 text-gray-700">Username</label>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
             <input
               type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200"
               required
             />
           </div>
           <div>
-            <label htmlFor="email" className="block mb-1 text-gray-700">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
             <input
               type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200"
               required
             />
           </div>
           <div>
-            <label htmlFor="password" className="block mb-1 text-gray-700">Password</label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
             <input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200"
               required
             />
-          </div>
-          <button 
-            type="submit" 
-            className="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-2 px-4 rounded-md transition duration-300"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Registering...' : 'Register'}
-          </button>
-        </form>
-      </div>
-    </Layout>
-  );
-}

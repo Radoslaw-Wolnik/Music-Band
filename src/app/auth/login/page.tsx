@@ -1,4 +1,4 @@
-// File: src/app/login/page.tsx
+// src/app/login/page.tsx
 
 'use client';
 
@@ -8,68 +8,63 @@ import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 
 export default function Login() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     try {
       const result = await signIn('credentials', {
-        username,
-        password,
         redirect: false,
+        email,
+        password,
       });
 
       if (result?.error) {
-        setError('Invalid username or password');
+        setError(result.error);
       } else {
-        router.push('/feed');
+        router.push('/');
       }
     } catch (error) {
-      setError('An error occurred. Please try again.');
-    } finally {
-      setIsLoading(false);
+      setError('An unexpected error occurred');
     }
   };
 
   return (
-    <Layout>
-      <div className="max-w-md mx-auto mt-10">
-        <h1 className="text-3xl font-bold mb-6 text-primary-800">Log In</h1>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
+    <Layout title="Login | Music Band">
+      <div className="max-w-md mx-auto">
+        <h1 className="text-3xl font-bold mb-6">Login</h1>
+        {error && <p className="text-error-500 mb-4">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="username" className="block mb-1 text-gray-700">Username</label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
             <input
-              type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200"
               required
             />
           </div>
           <div>
-            <label htmlFor="password" className="block mb-1 text-gray-700">Password</label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
             <input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200"
               required
             />
           </div>
-          <button 
-            type="submit" 
-            className="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-2 px-4 rounded-md transition duration-300"
-            disabled={isLoading}
+          <button
+            type="submit"
+            className="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-2 px-4 rounded"
           >
-            {isLoading ? 'Logging in...' : 'Log In'}
+            Login
           </button>
         </form>
       </div>

@@ -1,80 +1,106 @@
-// File: src/app/profile/page.tsx
+// src/app/profile/page.tsx
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Layout from '@/components/Layout';
-import UserProfile from '@/components/UserProfile';
-import { withAuth } from '@/lib/auth';
-import ImageUpload from '@/components/ImageUpload';
+import { getUserProfile, updateUserProfile } from '@/lib/api';
+import { User } from '@/types';
 
-function OwnProfile() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function ProfilePage() {
+  const { data: session } = useSession();
+  const [user, setUser] = useState<User | null>(null);
+  const [name, setName] = useState('');
+  const [profilePicture, setProfilePicture] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await fetch('/api/user/profile');
-        if (!response.ok) throw new Error('Failed to fetch profile');
-        const data = await response.json();
-        setUser(data);
-      } catch (err) {
-        setError('Failed to load profile. Please try again later.');
-      } finally {
-        setLoading(false);
+        const userData = await getUserProfile();
+        setUser(userData);
+        setName(userData.name || '');
+        setProfilePicture(userData.profilePicture || '');
+      } catch (error) {
+        setError('Failed to load profile');
       }
     };
 
-    fetchProfile();
-  }, []);
+    if (session) {
+      fetchProfile();
+    }
+  }, [session]);
 
-  const handleUpdateProfile = async (updatedData) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
     try {
-      const response = await fetch('/api/user/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedData)
-      });
-      if (!response.ok) throw new Error('Failed to update profile');
-      const updatedUser = await response.json();
+      const updatedUser = await updateUserProfile({ name, profilePicture });
       setUser(updatedUser);
-    } catch (err) {
-      setError('Failed to update profile. Please try again.');
+      setSuccess('Profile updated successfully');
+    } catch (error) {
+      setError('Failed to update profile');
     }
   };
 
-  const handleProfilePictureUpload = async (file) => {
-    try {
-      const formData = new FormData();
-      formData.append('profilePicture', file);
-      const response = await fetch('/api/user/profile-picture', {
-        method: 'POST',
-        body: formData
-      });
-      if (!response.ok) throw new Error('Failed to upload profile picture');
-      const { profilePictureUrl } = await response.json();
-      setUser(prevUser => ({ ...prevUser, profilePicture: profilePictureUrl }));
-    } catch (err) {
-      setError('Failed to upload profile picture. Please try again.');
-    }
-  };
-
-  if (loading) return <Layout><div className="text-center py-10">Loading profile...</div></Layout>;
-  if (error) return <Layout><div className="text-red-500 text-center py-10">{error}</div></Layout>;
-  if (!user) return <Layout><div className="text-center py-10">User not found</div></Layout>;
+  if (!user) {
+    return <Layout title="Profile | Music Band">Loading...</Layout>;
+  }
 
   return (
-    <Layout>
-      <h1 className="text-3xl font-bold mb-6 text-primary-800">Your Profile</h1>
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-2 text-secondary-700">Update Profile Picture</h2>
-        <ImageUpload onUpload={handleProfilePictureUpload} />
+    <Layout title="Profile | Music Band">
+      <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
+      {error && <p className="text-error-500 mb-4">{error}</p>}
+      {success && <p className="text-success-500 mb-4">{success}</p>}
+      <form onSubmit={handleSubmit} className="max-w-md space-y-4">
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+          <input
+            type="text"
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200"
+          />
+        </div>
+        <div>
+          <label htmlFor="profilePicture" className="block text-sm font-medium text-gray-700">Profile Picture URL</label>
+          <input
+            type="text"
+            id="profilePicture"
+            value={profilePicture}
+            onChange={(e) => setProfilePicture(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200"
+          />
+        </div>
+        <button
+          type="submit"
+          className="bg-primary-500 hover:bg-primary-600 text-white font-bold py-2 px-4 rounded"
+        >
+          Update Profile
+        </button>
+      </form>
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Your Tickets</h2>
+        {user.tickets && user.tickets.length > 0 ? (
+          <ul className="space-y-2">
+            {user.tickets.map((ticket) => (
+              <li key={ticket.id} className="bg-white shadow rounded-lg p-4">
+                <p className="font-semibold">{ticket.event.name}</p>
+                <p>{new Date(ticket.event.date).toLocaleString()}</p>
+                <p>Seat: {ticket.seat}</p>
+                <p>Price: ${ticket.price}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>You haven't purchased any tickets yet.</p>
+        )}
       </div>
-      <UserProfile user={user} isOwnProfile={true} onUpdateProfile={handleUpdateProfile} />
     </Layout>
   );
 }
-
-export default withAuth(OwnProfile);
