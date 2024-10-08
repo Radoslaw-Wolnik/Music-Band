@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -24,6 +25,7 @@ model User {
   tickets         Ticket[]
   posts           BlogPost[]
   subscription    Subscription?
+  notifications   Notification[]
 }
 
 model BandMember {
@@ -126,6 +128,41 @@ model MerchItem {
   price           Float
   stock           Int
   image           String?
+  purchases       MerchPurchase[]
+}
+
+model MerchPurchase {
+  id              Int       @id @default(autoincrement())
+  merchItemId     Int
+  merchItem       MerchItem @relation(fields: [merchItemId], references: [id])
+  userId          Int
+  user            User      @relation(fields: [userId], references: [id])
+  quantity        Int
+  totalPrice      Float
+  createdAt       DateTime  @default(now())
+}
+
+model FanMeeting {
+  id              Int       @id @default(autoincrement())
+  date            DateTime
+  description     String
+  maxAttendees    Int
+  attendees       User[]
+}
+
+model Notification {
+  id              Int       @id @default(autoincrement())
+  userId          Int
+  user            User      @relation(fields: [userId], references: [id])
+  message         String
+  isRead          Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+}
+
+model MainPage {
+  id              Int       @id @default(autoincrement())
+  content         Json
+  updatedAt       DateTime  @updatedAt
 }
 
 enum UserRole {
@@ -148,7 +185,3 @@ enum TicketStatus {
 }
 
 
-generator client {
-  provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
-}
