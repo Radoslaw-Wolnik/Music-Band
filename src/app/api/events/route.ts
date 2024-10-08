@@ -1,21 +1,22 @@
-// File: src/app/api/events/route.ts
+// src/app/api/events/route.ts
 
 import { NextResponse } from 'next/server';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../auth/[...nextauth]/route";
 import prisma from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { UnauthorizedError, BadRequestError } from '@/lib/errors';
 import logger from '@/lib/logger';
-import { UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors';
+import { Event, UserRole } from '@/types';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const events = await prisma.event.findMany({
-      include: { venue: true },
+      include: { venue: true, eventPlan: true },
     });
     return NextResponse.json(events);
   } catch (error) {
-    logger.error(error, 'Failed to fetch events');
-    throw new InternalServerError('Failed to fetch events');
+    logger.error('Error fetching events', { error });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -23,33 +24,44 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== 'MANAGER') {
+    if (!session || session.user.role !== UserRole.MANAGER) {
       throw new UnauthorizedError('Only managers can create events');
     }
 
     const data = await req.json();
+    const { name, description, date, endDate, venueId, ticketPrices, eventPlan, defaultPhoto, isPatronOnly } = data;
 
-    if (!data.name || !data.description || !data.date || !data.ticketPrices || !data.venueId) {
+    if (!name || !description || !date || !endDate || !venueId || !ticketPrices) {
       throw new BadRequestError('Missing required fields');
     }
 
     const event = await prisma.event.create({
       data: {
-        name: data.name,
-        description: data.description,
-        date: new Date(data.date),
-        ticketPrices: data.ticketPrices,
-        venueId: data.venueId,
+        name,
+        description,
+        date: new Date(date),
+        endDate: new Date(endDate),
+        venueId,
+        ticketPrices,
+        defaultPhoto,
+        isPatronOnly,
+        eventPlan: {
+          create: eventPlan.map((item: { time: string; name: string }) => ({
+            time: new Date(item.time),
+            name: item.name,
+          })),
+        },
       },
+      include: { eventPlan: true },
     });
 
-    logger.info({ eventId: event.id }, 'Event created successfully');
+    logger.info('Event created', { eventId: event.id, managerId: session.user.id });
     return NextResponse.json(event, { status: 201 });
   } catch (error) {
-    if (error instanceof AppError) {
+    if (error instanceof UnauthorizedError || error instanceof BadRequestError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
-    logger.error(error, 'Failed to create event');
-    throw new InternalServerError('Failed to create event');
+    logger.error('Error creating event', { error });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

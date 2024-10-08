@@ -1,12 +1,11 @@
-// src/app/api/tickets/route.ts
+// src/app/api/tickets/group-purchase/route.ts
 
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "../../auth/[...nextauth]/route";
 import prisma from '@/lib/prisma';
-import { UnauthorizedError, BadRequestError, NotFoundError } from '@/lib/errors';
+import { UnauthorizedError, BadRequestError } from '@/lib/errors';
 import logger from '@/lib/logger';
-import { UserRole, TicketStatus } from '@/types';
 
 export async function POST(req: Request) {
   try {
@@ -22,12 +21,16 @@ export async function POST(req: Request) {
       throw new BadRequestError('Missing required fields');
     }
 
+    if (quantity > 20) {
+      throw new BadRequestError('Maximum 20 tickets per purchase');
+    }
+
     const event = await prisma.event.findUnique({
       where: { id: eventId },
     });
 
     if (!event) {
-      throw new NotFoundError('Event not found');
+      throw new BadRequestError('Event not found');
     }
 
     const ticketPrice = event.ticketPrices[seat];
@@ -45,36 +48,13 @@ export async function POST(req: Request) {
       }),
     });
 
-    logger.info('Tickets purchased', { eventId, userId: session.user.id, quantity });
+    logger.info('Group tickets purchased', { eventId, userId: session.user.id, quantity });
     return NextResponse.json({ message: `${quantity} ticket(s) purchased successfully` }, { status: 201 });
   } catch (error) {
-    if (error instanceof UnauthorizedError || error instanceof BadRequestError || error instanceof NotFoundError) {
+    if (error instanceof UnauthorizedError || error instanceof BadRequestError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
-    logger.error('Error purchasing tickets', { error });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
-
-export async function GET(req: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
-      throw new UnauthorizedError('You must be logged in to view tickets');
-    }
-
-    const tickets = await prisma.ticket.findMany({
-      where: { userId: parseInt(session.user.id) },
-      include: { event: true },
-    });
-
-    return NextResponse.json(tickets);
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode });
-    }
-    logger.error('Error fetching tickets', { error });
+    logger.error('Error purchasing group tickets', { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

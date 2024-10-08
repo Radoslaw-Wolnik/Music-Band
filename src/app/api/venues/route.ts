@@ -1,19 +1,20 @@
-// File: src/app/api/venues/route.ts
+// src/app/api/venues/route.ts
 
 import { NextResponse } from 'next/server';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../auth/[...nextauth]/route";
 import prisma from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { UnauthorizedError, BadRequestError } from '@/lib/errors';
 import logger from '@/lib/logger';
-import { UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors';
+import { UserRole } from '@/types';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const venues = await prisma.venue.findMany();
     return NextResponse.json(venues);
   } catch (error) {
-    logger.error(error, 'Failed to fetch venues');
-    throw new InternalServerError('Failed to fetch venues');
+    logger.error('Error fetching venues', { error });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -21,32 +22,32 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== 'MANAGER') {
+    if (!session || session.user.role !== UserRole.MANAGER) {
       throw new UnauthorizedError('Only managers can create venues');
     }
 
-    const data = await req.json();
+    const { name, address, capacity, layout } = await req.json();
 
-    if (!data.name || !data.address || !data.capacity || !data.layout) {
+    if (!name || !address || !capacity || !layout) {
       throw new BadRequestError('Missing required fields');
     }
 
     const venue = await prisma.venue.create({
       data: {
-        name: data.name,
-        address: data.address,
-        capacity: data.capacity,
-        layout: data.layout,
+        name,
+        address,
+        capacity,
+        layout,
       },
     });
 
-    logger.info({ venueId: venue.id }, 'Venue created successfully');
+    logger.info('Venue created', { venueId: venue.id, managerId: session.user.id });
     return NextResponse.json(venue, { status: 201 });
   } catch (error) {
-    if (error instanceof AppError) {
+    if (error instanceof UnauthorizedError || error instanceof BadRequestError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
-    logger.error(error, 'Failed to create venue');
-    throw new InternalServerError('Failed to create venue');
+    logger.error('Error creating venue', { error });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
