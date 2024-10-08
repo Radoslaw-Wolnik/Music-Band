@@ -1,19 +1,35 @@
 // src/app/api/events/route.ts
 
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 import prisma from '@/lib/prisma';
 import { UnauthorizedError, BadRequestError } from '@/lib/errors';
 import logger from '@/lib/logger';
 import { Event, UserRole } from '@/types';
+import { getPaginationParams, getPaginationData } from '@/lib/pagination';
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const events = await prisma.event.findMany({
-      include: { venue: true, eventPlan: true },
+    const { page, limit } = getPaginationParams(req);
+    const skip = (page - 1) * limit;
+
+    const [events, total] = await Promise.all([
+      prisma.event.findMany({
+        include: { venue: true },
+        skip,
+        take: limit,
+        orderBy: { date: 'asc' },
+      }),
+      prisma.event.count(),
+    ]);
+
+    const paginationData = getPaginationData(total, page, limit);
+
+    return NextResponse.json({
+      events,
+      pagination: paginationData,
     });
-    return NextResponse.json(events);
   } catch (error) {
     logger.error('Error fetching events', { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
