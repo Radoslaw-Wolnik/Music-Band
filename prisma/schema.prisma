@@ -1,4 +1,5 @@
-// File: prisma/schema.prisma
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -21,7 +22,8 @@ model User {
   bandMember      BandMember?
   patron          Patron?
   tickets         Ticket[]
-  posts           Post[]
+  posts           BlogPost[]
+  subscription    Subscription?
 }
 
 model BandMember {
@@ -37,7 +39,18 @@ model Patron {
   id              Int       @id @default(autoincrement())
   userId          Int       @unique
   user            User      @relation(fields: [userId], references: [id])
-  subscriptionEnd DateTime
+  subscriptionId  Int
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
+}
+
+model Subscription {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @unique
+  user            User      @relation(fields: [userId], references: [id])
+  tier            SubscriptionTier
+  startDate       DateTime
+  endDate         DateTime
+  patrons         Patron[]
 }
 
 model Venue {
@@ -56,8 +69,20 @@ model Event {
   name            String
   description     String
   date            DateTime
+  endDate         DateTime
   ticketPrices    Json
   tickets         Ticket[]
+  eventPlan       EventPlanItem[]
+  defaultPhoto    String?
+  isPatronOnly    Boolean   @default(false)
+}
+
+model EventPlanItem {
+  id              Int       @id @default(autoincrement())
+  eventId         Int
+  event           Event     @relation(fields: [eventId], references: [id])
+  time            DateTime
+  name            String
 }
 
 model Ticket {
@@ -69,6 +94,7 @@ model Ticket {
   seat            String?
   price           Float
   purchasedAt     DateTime  @default(now())
+  status          TicketStatus @default(ACTIVE)
 }
 
 model Practice {
@@ -80,13 +106,15 @@ model Practice {
   notes           String?
 }
 
-model Post {
+model BlogPost {
   id              Int       @id @default(autoincrement())
   userId          Int
   user            User      @relation(fields: [userId], references: [id])
   title           String
   content         String
-  isPatronOnly    Boolean   @default(false)
+  photos          String[]
+  videos          String[]
+  accessTier      SubscriptionTier
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
@@ -105,4 +133,22 @@ enum UserRole {
   PATRON
   BAND_MEMBER
   MANAGER
+}
+
+enum SubscriptionTier {
+  FREE
+  BASIC
+  PREMIUM
+}
+
+enum TicketStatus {
+  ACTIVE
+  REFUNDED
+  USED
+}
+
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
