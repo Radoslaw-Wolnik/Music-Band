@@ -12,16 +12,44 @@ import { getPaginationParams, getPaginationData } from '@/lib/pagination';
 export async function GET(req: NextRequest) {
   try {
     const { page, limit } = getPaginationParams(req);
+    const searchParams = req.nextUrl.searchParams;
+    const search = searchParams.get('search');
+    const venueId = searchParams.get('venueId');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (venueId) {
+      where.venueId = parseInt(venueId, 10);
+    }
+
+    if (startDate) {
+      where.date = { ...where.date, gte: new Date(startDate) };
+    }
+
+    if (endDate) {
+      where.date = { ...where.date, lte: new Date(endDate) };
+    }
+
     const skip = (page - 1) * limit;
 
     const [events, total] = await Promise.all([
       prisma.event.findMany({
+        where,
         include: { venue: true },
         skip,
         take: limit,
         orderBy: { date: 'asc' },
       }),
-      prisma.event.count(),
+      prisma.event.count({ where }),
     ]);
 
     const paginationData = getPaginationData(total, page, limit);
