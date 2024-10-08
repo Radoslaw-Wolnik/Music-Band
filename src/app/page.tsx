@@ -1,26 +1,21 @@
-// File: src/app/page.tsx
+// File: src/app/(public)/page.tsx
 
 import React from 'react';
 import Link from 'next/link';
-import Layout from '@/components/Layout';
 
 export default function Home() {
   return (
-    <Layout>
-      <div className="text-center py-20">
-        <h1 className="text-5xl font-bold mb-8 text-primary-800">Welcome to BirdWatch</h1>
-        <p className="text-2xl mb-12 text-gray-600">
-          Join our community of bird enthusiasts and share your sightings!
-        </p>
-        <div className="space-x-4">
-          <Link href="/register" className="bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
-            Sign Up
-          </Link>
-          <Link href="/login" className="bg-secondary-500 hover:bg-secondary-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
-            Log In
-          </Link>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold text-primary-700 mb-6">Welcome to Our Band</h1>
+      <p className="text-lg mb-4">Check out our latest events and music!</p>
+      <div className="space-y-4">
+        <Link href="/events" className="btn-primary">
+          View Events
+        </Link>
+        <Link href="/merch" className="btn-secondary">
+          Shop Merch
+        </Link>
       </div>
-    </Layout>
+    </div>
   );
 }

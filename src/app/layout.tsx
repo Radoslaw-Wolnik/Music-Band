@@ -1,22 +1,28 @@
-// File: src/components/Layout.tsx
+// File: src/app/layout.tsx
 
 import React from 'react';
-import Header from './Header';
-import Footer from './Footer';
-import ErrorBoundary from './ErrorBoundary';
+import { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import Layout from '@/components/Layout';
+import '@/styles/globals.css';
 
-const Layout = ({ children }) => {
-  return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
-      <Header />
-      <ErrorBoundary>
-        <main className="flex-grow container mx-auto px-4 py-8">
-          {children}
-        </main>
-      </ErrorBoundary>
-      <Footer />
-    </div>
-  );
+const inter = Inter({ subsets: ['latin'] });
+
+export const metadata: Metadata = {
+  title: 'Music Band Website',
+  description: 'Official website for our music band',
 };
 
-export default Layout;
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body className={inter.className}>
+        <Layout>{children}</Layout>
+      </body>
+    </html>
+  );
+}

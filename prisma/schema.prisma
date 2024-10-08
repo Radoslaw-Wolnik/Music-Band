@@ -1,0 +1,108 @@
+// File: prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  password        String
+  role            UserRole
+  name            String?
+  profilePicture  String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  bandMember      BandMember?
+  patron          Patron?
+  tickets         Ticket[]
+  posts           Post[]
+}
+
+model BandMember {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @unique
+  user            User      @relation(fields: [userId], references: [id])
+  instrument      String?
+  bio             String?
+  practices       Practice[]
+}
+
+model Patron {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @unique
+  user            User      @relation(fields: [userId], references: [id])
+  subscriptionEnd DateTime
+}
+
+model Venue {
+  id              Int       @id @default(autoincrement())
+  name            String
+  address         String
+  capacity        Int
+  layout          Json
+  events          Event[]
+}
+
+model Event {
+  id              Int       @id @default(autoincrement())
+  venueId         Int
+  venue           Venue     @relation(fields: [venueId], references: [id])
+  name            String
+  description     String
+  date            DateTime
+  ticketPrices    Json
+  tickets         Ticket[]
+}
+
+model Ticket {
+  id              Int       @id @default(autoincrement())
+  eventId         Int
+  event           Event     @relation(fields: [eventId], references: [id])
+  userId          Int
+  user            User      @relation(fields: [userId], references: [id])
+  seat            String?
+  price           Float
+  purchasedAt     DateTime  @default(now())
+}
+
+model Practice {
+  id              Int       @id @default(autoincrement())
+  bandMemberId    Int
+  bandMember      BandMember @relation(fields: [bandMemberId], references: [id])
+  date            DateTime
+  duration        Int
+  notes           String?
+}
+
+model Post {
+  id              Int       @id @default(autoincrement())
+  userId          Int
+  user            User      @relation(fields: [userId], references: [id])
+  title           String
+  content         String
+  isPatronOnly    Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model MerchItem {
+  id              Int       @id @default(autoincrement())
+  name            String
+  description     String
+  price           Float
+  stock           Int
+  image           String?
+}
+
+enum UserRole {
+  FAN
+  PATRON
+  BAND_MEMBER
+  MANAGER
+}
