@@ -105,8 +105,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-
-## ToDo
-app/api/blog-post/[id]/route.ts unfinished
-app/auth/register/page unfinished
