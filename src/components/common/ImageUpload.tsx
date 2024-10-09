@@ -1,70 +1,42 @@
-// File: src/components/ImageUpload.tsx
-
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
 
 interface ImageUploadProps {
-  onUpload: (file: File) => void;
+  onUpload: (files: File[]) => void;
   multiple?: boolean;
+  accept?: string;
+  maxSize?: number;
 }
 
-const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload, multiple = false }) => {
+const ImageUpload: React.FC<ImageUploadProps> = ({
+  onUpload,
+  multiple = false,
+  accept = 'image/*',
+  maxSize = 5242880, // 5MB
+}) => {
   const [dragActive, setDragActive] = useState(false);
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const onDrop = useCallback((acceptedFiles: File[]) => {
     setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFiles(e.dataTransfer.files);
-    }
-  };
+    onUpload(acceptedFiles);
+  }, [onUpload]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    if (e.target.files && e.target.files[0]) {
-      handleFiles(e.target.files);
-    }
-  };
-
-  const handleFiles = (files: FileList) => {
-    if (multiple) {
-      Array.from(files).forEach(file => onUpload(file));
-    } else {
-      onUpload(files[0]);
-    }
-  };
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept,
+    multiple,
+    maxSize,
+  });
 
   return (
     <div
+      {...getRootProps()}
       className={`border-2 border-dashed rounded-lg p-4 text-center ${
-        dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+        isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
       }`}
-      onDragEnter={handleDrag}
-      onDragLeave={handleDrag}
-      onDragOver={handleDrag}
-      onDrop={handleDrop}
     >
-      <input
-        type="file"
-        accept="image/*"
-        onChange={handleChange}
-        multiple={multiple}
-        className="hidden"
-        id="image-upload"
-      />
-      <label htmlFor="image-upload" className="cursor-pointer">
-        <span className="text-blue-500">Click to upload</span> or drag and drop
-      </label>
+      <input {...getInputProps()} />
+      <p className="text-blue-500 cursor-pointer">Click to upload or drag and drop</p>
       <p className="text-gray-500 text-sm mt-2">
         {multiple ? 'Upload images' : 'Upload an image'}
       </p>

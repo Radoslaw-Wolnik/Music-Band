@@ -1,20 +1,20 @@
-// src/components/Layout.tsx
-
-import React from 'react';
+import React, { ReactNode } from 'react';
 import Head from 'next/head';
 import Navbar from './Navbar';
 import Footer from './Footer';
 
 interface LayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
   title?: string;
+  description?: string;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, title = 'Music Band Website' }) => {
+const Layout: React.FC<LayoutProps> = ({ children, title = 'Music Band Website', description = 'Official website for our music band' }) => {
   return (
     <>
       <Head>
         <title>{title}</title>
+        <meta name="description" content={description} />
         <meta charSet="utf-8" />
         <meta name="viewport" content="initial-scale=1.0, width=device-width" />
       </Head>

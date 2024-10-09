@@ -1,8 +1,8 @@
-// src/components/MerchItem.tsx
-
 import React from 'react';
 import { MerchItem as MerchItemType } from '@/types';
 import { purchaseMerch } from '@/lib/api';
+import Card from '@/components/common/Card';
+import Button from '@/components/common/Button';
 
 interface MerchItemProps {
   item: MerchItemType;
@@ -19,7 +19,7 @@ const MerchItem: React.FC<MerchItemProps> = ({ item }) => {
   };
 
   return (
-    <div className="bg-white shadow-md rounded-lg overflow-hidden">
+    <Card>
       {item.image && (
         <img src={item.image} alt={item.name} className="w-full h-48 object-cover" />
       )}
@@ -27,14 +27,11 @@ const MerchItem: React.FC<MerchItemProps> = ({ item }) => {
         <h2 className="text-xl font-semibold mb-2">{item.name}</h2>
         <p className="text-gray-600 mb-4">{item.description}</p>
         <p className="text-lg font-bold mb-4">${item.price.toFixed(2)}</p>
-        <button
-          onClick={handlePurchase}
-          className="bg-secondary-500 hover:bg-secondary-600 text-white font-bold py-2 px-4 rounded w-full"
-        >
+        <Button onClick={handlePurchase} variant="secondary" className="w-full">
           Add to Cart
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 };
 

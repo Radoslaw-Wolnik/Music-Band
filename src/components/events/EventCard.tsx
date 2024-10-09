@@ -1,8 +1,8 @@
-// src/components/EventCard.tsx
-
 import React from 'react';
 import Link from 'next/link';
 import { Event } from '@/types';
+import Card from '@/components/common/Card';
+import Button from '@/components/common/Button';
 
 interface EventCardProps {
   event: Event;
@@ -10,7 +10,7 @@ interface EventCardProps {
 
 const EventCard: React.FC<EventCardProps> = ({ event }) => {
   return (
-    <div className="bg-white shadow-md rounded-lg overflow-hidden">
+    <Card>
       {event.defaultPhoto && (
         <img src={event.defaultPhoto} alt={event.name} className="w-full h-48 object-cover" />
       )}
@@ -20,11 +20,11 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         <p className="text-sm text-gray-500 mb-2">
           {new Date(event.date).toLocaleDateString()} at {event.venue.name}
         </p>
-        <Link href={`/events/${event.id}`} className="bg-primary-500 hover:bg-primary-600 text-white font-bold py-2 px-4 rounded inline-block">
-          View Details
+        <Link href={`/events/${event.id}`} passHref>
+          <Button as="a">View Details</Button>
         </Link>
       </div>
-    </div>
+    </Card>
   );
 };
 

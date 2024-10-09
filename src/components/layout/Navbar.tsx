@@ -1,9 +1,8 @@
-// src/components/Navbar.tsx
-
 import React from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { UserRole } from '@/types';
+import Button from '@/components/common/Button';
 
 const Navbar: React.FC = () => {
   const { data: session } = useSession();
@@ -29,12 +28,16 @@ const Navbar: React.FC = () => {
                 <Link href="/patron" className="hover:text-primary-200">Patron</Link>
               )}
               <Link href="/profile" className="hover:text-primary-200">Profile</Link>
-              <button onClick={() => signOut()} className="hover:text-primary-200">Logout</button>
+              <Button onClick={() => signOut()} variant="secondary">Logout</Button>
             </>
           ) : (
             <>
-              <Link href="/login" className="hover:text-primary-200">Login</Link>
-              <Link href="/register" className="hover:text-primary-200">Register</Link>
+              <Link href="/login" passHref>
+                <Button as="a" variant="secondary">Login</Button>
+              </Link>
+              <Link href="/register" passHref>
+                <Button as="a">Register</Button>
+              </Link>
             </>
           )}
         </div>

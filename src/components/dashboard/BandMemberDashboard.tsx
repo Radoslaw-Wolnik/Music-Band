@@ -1,25 +1,15 @@
-// File: src/components/BandMemberDashboard.tsx
-
 import React from 'react';
-import Link from 'next/link';
+import { UserRole } from '@/types';
+import Dashboard from './Dashboard';
 
 const BandMemberDashboard: React.FC = () => {
-  return (
-    <div>
-      <h2 className="text-2xl font-semibold mb-4">Band Member Dashboard</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Link href="/dashboard/profile" className="btn-primary text-center">
-          Edit Profile
-        </Link>
-        <Link href="/dashboard/practices" className="btn-primary text-center">
-          Schedule Practice
-        </Link>
-        <Link href="/dashboard/content/create" className="btn-primary text-center">
-          Create Content
-        </Link>
-      </div>
-    </div>
-  );
+  const actions = [
+    { label: 'Edit Profile', href: '/dashboard/profile' },
+    { label: 'Schedule Practice', href: '/dashboard/practices' },
+    { label: 'Create Content', href: '/dashboard/content/create' },
+  ];
+
+  return <Dashboard role={UserRole.BAND_MEMBER} actions={actions} />;
 };
 
 export default BandMemberDashboard;

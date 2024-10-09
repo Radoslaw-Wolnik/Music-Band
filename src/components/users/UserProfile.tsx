@@ -1,22 +1,9 @@
-// File: src/components/UserProfile.tsx
-
 import React, { useState } from 'react';
 import Image from 'next/image';
-import BirdPostCard from './BirdPostCard';
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  profilePicture: string;
-  createdAt: string;
-  role: string;
-  posts: any[]; // Replace 'any' with a proper Post type if available
-  _count: {
-    posts: number;
-    friends: number;
-  };
-}
+import { User } from '@/types';
+import Card from '@/components/common/Card';
+import Button from '@/components/common/Button';
+import Form from '@/components/common/Form';
 
 interface UserProfileProps {
   user: User;
@@ -26,31 +13,24 @@ interface UserProfileProps {
 
 const UserProfile: React.FC<UserProfileProps> = ({ user, isOwnProfile, onUpdateProfile }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedUser, setEditedUser] = useState(user);
 
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
+  const handleEdit = () => setIsEditing(true);
+  const handleCancel = () => setIsEditing(false);
 
-  const handleSave = async () => {
+  const handleSubmit = async (data: Record<string, any>) => {
     if (onUpdateProfile) {
-      await onUpdateProfile(editedUser);
+      await onUpdateProfile(data);
     }
     setIsEditing(false);
   };
 
-  const handleCancel = () => {
-    setEditedUser(user);
-    setIsEditing(false);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setEditedUser(prev => ({ ...prev, [name]: value }));
-  };
+  const fields = [
+    { name: 'username', label: 'Username', type: 'text', placeholder: 'Enter username' },
+    { name: 'email', label: 'Email', type: 'email', placeholder: 'Enter email' },
+  ];
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-6">
+    <Card className="p-6">
       <div className="flex items-center mb-6">
         <div className="relative w-24 h-24 rounded-full overflow-hidden mr-4">
           <Image
@@ -61,17 +41,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, isOwnProfile, onUpdateP
           />
         </div>
         <div>
-          {isEditing ? (
-            <input
-              type="text"
-              name="username"
-              value={editedUser.username}
-              onChange={handleChange}
-              className="text-2xl font-bold mb-1 border rounded px-2 py-1"
-            />
-          ) : (
-            <h2 className="text-2xl font-bold mb-1">{user.username}</h2>
-          )}
+          <h2 className="text-2xl font-bold mb-1">{user.username}</h2>
           <p className="text-gray-600">Member since {new Date(user.createdAt).getFullYear()}</p>
           <p className="text-gray-600 capitalize">{user.role.toLowerCase()}</p>
         </div>
@@ -79,18 +49,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, isOwnProfile, onUpdateP
       {isOwnProfile && (
         <div className="mb-4">
           {isEditing ? (
-            <>
-              <button onClick={handleSave} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded mr-2">
-                Save
-              </button>
-              <button onClick={handleCancel} className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
-                Cancel
-              </button>
-            </>
+            <Form
+              fields={fields}
+              onSubmit={handleSubmit}
+              submitLabel="Save Changes"
+            />
           ) : (
-            <button onClick={handleEdit} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
-              Edit Profile
-            </button>
+            <Button onClick={handleEdit}>Edit Profile</Button>
           )}
         </div>
       )}
@@ -99,15 +64,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, isOwnProfile, onUpdateP
         <p>Posts: {user._count.posts}</p>
         <p>Friends: {user._count.friends}</p>
       </div>
-      <div>
-        <h3 className="text-xl font-semibold mb-2">Recent Posts</h3>
-        <div className="space-y-4">
-          {user.posts.map(post => (
-            <BirdPostCard key={post.id} post={post} />
-          ))}
-        </div>
-      </div>
-    </div>
+    </Card>
   );
 };
 
