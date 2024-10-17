@@ -1,10 +1,17 @@
-// src/lib/pagination.ts
-
 import { NextRequest } from 'next/server';
 
 export interface PaginationParams {
   page: number;
   limit: number;
+}
+
+export interface PaginationResult {
+  totalItems: number;
+  itemsPerPage: number;
+  totalPages: number;
+  currentPage: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
 }
 
 export function getPaginationParams(req: NextRequest): PaginationParams {
@@ -14,7 +21,7 @@ export function getPaginationParams(req: NextRequest): PaginationParams {
   return { page, limit };
 }
 
-export function getPaginationData(total: number, page: number, limit: number) {
+export function getPaginationData(total: number, page: number, limit: number): PaginationResult {
   const totalPages = Math.ceil(total / limit);
   const hasNextPage = page < totalPages;
   const hasPrevPage = page > 1;

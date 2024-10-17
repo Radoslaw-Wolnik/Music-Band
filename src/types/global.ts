@@ -55,7 +55,7 @@ export type SubscriptionInfo = {
 };
 
 // Notification type
-export type Notification = {
+export type SmallNotification = {
   id: number;
   userId: number;
   message: string;

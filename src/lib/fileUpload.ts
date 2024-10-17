@@ -6,29 +6,34 @@ import { BadRequestError } from './errors';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads');
 
-export async function uploadFile(file: File, allowedTypes: string[] = ['image/jpeg', 'image/png', 'image/webp']): Promise<string> {
+export type UploadResult = {
+  filePath: string;
+  fileUrl: string;
+};
+
+export async function uploadFile(file: Express.Multer.File, allowedTypes: string[] = ['image/jpeg', 'image/png', 'image/webp']): Promise<UploadResult> {
   if (!file) {
     throw new BadRequestError('No file provided');
   }
 
-  if (!allowedTypes.includes(file.type)) {
+  if (!allowedTypes.includes(file.mimetype)) {
     throw new BadRequestError('Invalid file type');
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const uniqueFilename = `${uuidv4()}${path.extname(file.name)}`;
+  const uniqueFilename = `${uuidv4()}${path.extname(file.originalname)}`;
   const filePath = path.join(UPLOAD_DIR, uniqueFilename);
 
   try {
-    if (file.type.startsWith('image/')) {
-      await sharp(buffer)
+    if (file.mimetype.startsWith('image/')) {
+      await sharp(file.buffer)
         .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
         .toFile(filePath);
     } else {
-      await writeFile(filePath, buffer);
+      await writeFile(filePath, file.buffer);
     }
 
-    return `/uploads/${uniqueFilename}`;
+    const fileUrl = `/uploads/${uniqueFilename}`;
+    return { filePath, fileUrl };
   } catch (error) {
     throw new BadRequestError('Error uploading file');
   }

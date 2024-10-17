@@ -1,14 +1,17 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
+import prisma from "./prisma";
+import { User, UserRole, SubscriptionTier } from '@/types';
 import { UnauthorizedError } from './errors';
-import { User, UserRole } from '@/types/prisma';
-
-const prisma = new PrismaClient();
 
 declare module "next-auth" {
+  interface User {
+    role: UserRole;
+    subscriptionTier?: SubscriptionTier;
+  }
+  
   interface Session {
     user: {
       id: string;
@@ -16,16 +19,15 @@ declare module "next-auth" {
       email?: string | null;
       image?: string | null;
       role: UserRole;
+      subscriptionTier?: SubscriptionTier;
     }
-  }
-  interface User {
-    role: UserRole;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
     role: UserRole;
+    subscriptionTier?: SubscriptionTier;
   }
 }
 
@@ -35,16 +37,17 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        username: { label: "Username", type: "text" },
+        email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
+        if (!credentials?.email || !credentials?.password) {
           throw new UnauthorizedError("Invalid credentials");
         }
 
         const user = await prisma.user.findUnique({
-          where: { username: credentials.username }
+          where: { email: credentials.email },
+          include: { subscription: true }
         });
 
         if (!user) {
@@ -59,29 +62,34 @@ export const authOptions: NextAuthOptions = {
 
         return {
           id: user.id.toString(),
-          username: user.username,
           email: user.email,
           role: user.role,
+          subscriptionTier: user.subscription?.tier
         };
       }
     })
   ],
-  session: {
-    strategy: "jwt",
-  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
+        token.subscriptionTier = user.subscriptionTier;
       }
       return token;
     },
     async session({ session, token }) {
       if (session?.user) {
         session.user.role = token.role;
+        session.user.subscriptionTier = token.subscriptionTier;
         session.user.id = token.sub as string;
       }
       return session;
     },
+  },
+  pages: {
+    signIn: '/login',
+  },
+  session: {
+    strategy: 'jwt',
   },
 };

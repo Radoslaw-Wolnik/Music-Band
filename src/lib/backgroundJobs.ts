@@ -1,9 +1,7 @@
-// src/lib/backgroundJobs.ts
-
 import cron from 'node-cron';
 import prisma from './prisma';
 import logger from './logger';
-import { SubscriptionTier, UserRole } from '@/types';
+import { SubscriptionTier, UserRole, User, Subscription } from '@/types';
 
 export function startBackgroundJobs() {
   // Check for expiring subscriptions daily at midnight
