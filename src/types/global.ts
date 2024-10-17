@@ -35,6 +35,8 @@ export type AuthenticatedEventInfo = PublicEventInfo & {
   ticketPrices: Record<string, number>;
 };
 
+export type TicketPrices = Record<string, number>;
+
 // Blog post for public view
 export type PublicBlogPost = Omit<BlogPost, 'updatedAt'> & {
   author: PublicUserInfo;
@@ -44,6 +46,27 @@ export type PublicBlogPost = Omit<BlogPost, 'updatedAt'> & {
 export type UserTicket = Pick<Ticket, 'id' | 'seat' | 'price' | 'status' | 'purchasedAt'> & {
   event: Pick<Event, 'id' | 'name' | 'date' | 'endDate'>;
 };
+
+export type FormattedTicket = {
+  id: number;
+  eventName: string;
+  eventDate: Date;
+  eventEndDate: Date;
+  venue: {
+    name: string;
+    address: string;
+  };
+  seat: string;
+  price: number;
+  purchasedAt: Date;
+  status: TicketStatus;
+  user: {
+    id: number;
+    name: string | null;
+    email: string;
+  };
+};
+
 
 // Subscription info
 export type SubscriptionInfo = {
@@ -75,5 +98,7 @@ export type AnalyticsData = {
   };
   subscriberGrowth: Record<SubscriptionTier, number>;
 };
+
+
 
 export { UserRole, SubscriptionTier, TicketStatus };
