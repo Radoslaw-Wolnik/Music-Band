@@ -13,16 +13,26 @@ services:
       - db
     volumes:
       - ./public/uploads:/app/public/uploads
+    networks:
+      - musicband-network
 
   db:
-    image: postgres:13
+    image: postgres:15
+    container_name: musicband-postgres
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - musicband-network
 
 volumes:
   postgres_data:
   uploads:
+
+networks:
+  musicband-network:
