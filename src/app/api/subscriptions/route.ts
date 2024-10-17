@@ -7,6 +7,7 @@ import prisma from '@/lib/prisma';
 import { UnauthorizedError, BadRequestError, ConflictError } from '@/lib/errors';
 import logger from '@/lib/logger';
 import { UserRole, SubscriptionTier } from '@/types';
+import { makePurchase, PurchaseItem } from '@/lib/purchaseUtils';
 
 export async function POST(req: Request) {
   try {
@@ -30,25 +31,17 @@ export async function POST(req: Request) {
       throw new ConflictError('You already have an active subscription');
     }
 
-    const subscription = await prisma.subscription.create({
-      data: {
-        userId: parseInt(session.user.id),
-        tier,
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-      },
-    });
+    const purchaseItem: PurchaseItem = {
+      id: 0, // Subscription doesn't have a specific item ID
+      price: getTierPrice(tier), // Implement this function to get the price for each tier
+      type: 'subscription',
+      tier: tier,
+    };
 
-    // Update user role to PATRON if subscribing
-    if (tier !== SubscriptionTier.FREE) {
-      await prisma.user.update({
-        where: { id: parseInt(session.user.id) },
-        data: { role: UserRole.PATRON },
-      });
-    }
+    const result = await makePurchase(parseInt(session.user.id), purchaseItem);
 
-    logger.info('Subscription created', { subscriptionId: subscription.id, userId: session.user.id, tier });
-    return NextResponse.json(subscription, { status: 201 });
+    logger.info('Subscription created', { subscriptionId: result.purchaseId, userId: session.user.id, tier });
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
     if (error instanceof UnauthorizedError || error instanceof BadRequestError || error instanceof ConflictError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
@@ -77,5 +70,17 @@ export async function GET(req: Request) {
     }
     logger.error('Error fetching subscription', { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+function getTierPrice(tier: SubscriptionTier): number {
+  // Implement pricing logic here
+  switch (tier) {
+    case SubscriptionTier.BASIC:
+      return 9.99;
+    case SubscriptionTier.PREMIUM:
+      return 19.99;
+    default:
+      return 0;
   }
 }

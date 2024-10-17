@@ -1,14 +1,15 @@
 // src/app/api/practices/route.ts
 
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 import prisma from '@/lib/prisma';
 import { UnauthorizedError, BadRequestError } from '@/lib/errors';
 import logger from '@/lib/logger';
 import { UserRole } from '@/types';
+import { getPaginationParams, getPaginationData } from '@/lib/pagination';
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -16,11 +17,21 @@ export async function GET(req: Request) {
       throw new UnauthorizedError('Only band members and managers can view practices');
     }
 
-    const practices = await prisma.practice.findMany({
-      include: { bandMember: { include: { user: true } } },
-    });
+    const { page, limit } = getPaginationParams(req);
 
-    return NextResponse.json(practices);
+    const [practices, total] = await Promise.all([
+      prisma.practice.findMany({
+        include: { bandMember: { include: { user: true } } },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { date: 'desc' },
+      }),
+      prisma.practice.count(),
+    ]);
+
+    const paginationData = getPaginationData(total, page, limit);
+
+    return NextResponse.json({ practices, pagination: paginationData });
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });

@@ -6,19 +6,26 @@ import prisma from '@/lib/prisma';
 import { BadRequestError, ConflictError } from '@/lib/errors';
 import logger from '@/lib/logger';
 import { UserRole } from '@/types';
+import { userSchema } from '@/lib/validationSchemas';
 
 export async function POST(req: Request) {
   try {
-    const { email, password, name, role } = await req.json();
+    const body = await req.json();
+    const validatedData = userSchema.parse(body);
 
-    if (!email || !password) {
-      throw new BadRequestError("Email and password are required");
-    }
+    const { email, password, name, surname, username, role } = validatedData;
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email },
+          { username }
+        ]
+      }
+    });
 
     if (existingUser) {
-      throw new ConflictError("Email already in use");
+      throw new ConflictError("Email or username already in use");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -28,7 +35,10 @@ export async function POST(req: Request) {
         email,
         password: hashedPassword,
         name,
-        role: role as UserRole || UserRole.FAN,
+        surname,
+        username,
+        role: role || UserRole.FAN,
+        lastActive: new Date(),
       },
     });
 
@@ -36,8 +46,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ 
       message: "User registered successfully",
-      user: { id: user.id, email: user.email, role: user.role }
+      user: { id: user.id, email: user.email, username: user.username, role: user.role }
     }, { status: 201 });
+
   } catch (error) {
     if (error instanceof BadRequestError || error instanceof ConflictError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });

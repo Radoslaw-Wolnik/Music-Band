@@ -4,9 +4,10 @@ import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 import prisma from '@/lib/prisma';
-import { UnauthorizedError } from '@/lib/errors';
+import { UnauthorizedError, BadRequestError } from '@/lib/errors';
 import logger from '@/lib/logger';
 import { getPaginationParams, getPaginationData } from '@/lib/pagination';
+import { UserRole } from '@/types';
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,13 +17,12 @@ export async function GET(req: NextRequest) {
     }
 
     const { page, limit } = getPaginationParams(req);
-    const skip = (page - 1) * limit;
 
     const [notifications, total] = await Promise.all([
       prisma.notification.findMany({
         where: { userId: parseInt(session.user.id) },
         orderBy: { createdAt: 'desc' },
-        skip,
+        skip: (page - 1) * limit,
         take: limit,
       }),
       prisma.notification.count({ where: { userId: parseInt(session.user.id) } }),
@@ -44,11 +44,15 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'MANAGER') {
+    if (!session || session.user.role !== UserRole.MANAGER) {
       throw new UnauthorizedError('Only managers can create notifications');
     }
 
     const { message, userIds } = await req.json();
+
+    if (!message || !userIds || !Array.isArray(userIds)) {
+      throw new BadRequestError('Invalid input');
+    }
 
     const notifications = await prisma.notification.createMany({
       data: userIds.map((userId: number) => ({
@@ -60,7 +64,7 @@ export async function POST(req: NextRequest) {
     logger.info('Notifications created', { count: notifications.count, managerId: session.user.id });
     return NextResponse.json({ message: `${notifications.count} notifications created` }, { status: 201 });
   } catch (error) {
-    if (error instanceof UnauthorizedError) {
+    if (error instanceof UnauthorizedError || error instanceof BadRequestError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
     logger.error('Error creating notifications', { error });

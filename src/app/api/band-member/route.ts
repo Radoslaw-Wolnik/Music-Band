@@ -8,20 +8,6 @@ import { UnauthorizedError, BadRequestError, NotFoundError } from '@/lib/errors'
 import logger from '@/lib/logger';
 import { UserRole } from '@/types';
 
-export async function GET() {
-  try {
-    const bandMembers = await prisma.bandMember.findMany({
-      include: { user: true },
-    });
-
-    return NextResponse.json(bandMembers);
-  } catch (error) {
-    logger.error('Error fetching band members', { error });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
-
-// src/app/api/band-members/[id]/route.ts
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {

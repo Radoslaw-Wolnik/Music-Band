@@ -1,4 +1,4 @@
-// app/api/blog-post/[id]/route.ts
+// src/app/api/blog-posts/[id]/route.ts
 
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
@@ -11,9 +11,14 @@ import { UserRole, SubscriptionTier } from '@/types';
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    const userTier = session?.user.role === UserRole.PATRON
-      ? (await prisma.subscription.findFirst({ where: { userId: parseInt(session.user.id) } }))?.tier
-      : SubscriptionTier.FREE;
+    let userTier: SubscriptionTier = SubscriptionTier.FREE;
+
+    if (session?.user.role === UserRole.PATRON) {
+      const subscription = await prisma.subscription.findFirst({ 
+        where: { userId: parseInt(session.user.id) } 
+      });
+      userTier = subscription?.tier ?? SubscriptionTier.FREE;
+    }
 
     const post = await prisma.blogPost.findUnique({
       where: { id: parseInt(params.id) },

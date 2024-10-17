@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import prisma from '@/lib/prisma';
-import { UnauthorizedError, NotFoundError } from '@/lib/errors';
+import { UnauthorizedError, NotFoundError, BadRequestError } from '@/lib/errors';
 import logger from '@/lib/logger';
 import { User } from '@/types';
 
@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      throw new UnauthorizedError();
+      throw new UnauthorizedError('You must be logged in to view your profile');
     }
 
     const user = await prisma.user.findUnique({
@@ -54,10 +54,14 @@ export async function PUT(req: Request) {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      throw new UnauthorizedError();
+      throw new UnauthorizedError('You must be logged in to update your profile');
     }
 
     const { name, profilePicture } = await req.json();
+
+    if (!name) {
+      throw new BadRequestError('Name is required');
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: parseInt(session.user.id) },
@@ -67,7 +71,7 @@ export async function PUT(req: Request) {
     logger.info('User updated profile', { userId: session.user.id });
     return NextResponse.json(updatedUser);
   } catch (error) {
-    if (error instanceof UnauthorizedError) {
+    if (error instanceof UnauthorizedError || error instanceof BadRequestError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
     logger.error('Error updating user profile', { error });

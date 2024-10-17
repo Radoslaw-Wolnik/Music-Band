@@ -39,13 +39,11 @@ export async function GET(req: NextRequest) {
       where.accessTier = accessTier;
     }
 
-    const skip = (page - 1) * limit;
-
     const [posts, total] = await Promise.all([
       prisma.blogPost.findMany({
         where,
         include: { user: true },
-        skip,
+        skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),

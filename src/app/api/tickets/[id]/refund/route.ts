@@ -33,12 +33,17 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       throw new BadRequestError('This ticket has already been refunded or used');
     }
 
-    // You might want to add a check here to ensure the event hasn't started yet
+    // Check if the event hasn't started yet
+    if (new Date() >= ticket.event.date) {
+      throw new BadRequestError('Cannot refund tickets for events that have already started');
+    }
 
     const refundedTicket = await prisma.ticket.update({
       where: { id: parseInt(params.id) },
       data: { status: TicketStatus.REFUNDED },
     });
+
+    // Here you would typically process the refund through your payment provider
 
     logger.info('Ticket refunded', { ticketId: refundedTicket.id, userId: session.user.id });
     return NextResponse.json({ message: 'Ticket refunded successfully' });

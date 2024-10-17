@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient } from "@prisma/client";
-import { NotFoundError, InternalServerError } from '@/lib/errors';
-import logger from '@/lib/logger';
+// src/app/api/user/[id]/route.ts
 
-const prisma = new PrismaClient();
+import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+import { NotFoundError } from '@/lib/errors';
+import logger from '@/lib/logger';
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -14,21 +14,18 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       select: {
         id: true,
         username: true,
+        name: true,
         profilePicture: true,
         createdAt: true,
         role: true,
         posts: {
           orderBy: { createdAt: 'desc' },
           take: 10,
-          include: {
-            likes: true,
-            dislikes: true,
-          },
         },
         _count: {
           select: {
             posts: true,
-            friends: true,
+            tickets: true,
           },
         },
       },
@@ -41,10 +38,10 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     logger.info('User profile fetched', { profileId: userId });
     return NextResponse.json(user);
   } catch (error) {
-    if (error instanceof AppError) {
+    if (error instanceof NotFoundError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
-    logger.error('Unhandled error in fetching user profile', { error });
-    throw new InternalServerError();
+    logger.error('Unhandled error in fetching user profile', { error, userId: params.id });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

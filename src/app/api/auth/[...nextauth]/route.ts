@@ -1,5 +1,6 @@
 // src/app/api/auth/[...nextauth]/route.ts
 
+import NextAuth from 'next-auth';
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
@@ -7,13 +8,38 @@ import bcrypt from 'bcrypt';
 import prisma from '@/lib/prisma';
 import { UnauthorizedError } from '@/lib/errors';
 import logger from '@/lib/logger';
-import { User, UserRole } from '@/types';
+import { User, UserRole, SubscriptionTier } from '@/types';
+
+declare module "next-auth" {
+  interface User {
+    role: UserRole;
+    subscriptionTier?: SubscriptionTier;
+  }
+
+  interface Session {
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+      role: UserRole;
+      subscriptionTier?: SubscriptionTier;
+    }
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    role: UserRole;
+    subscriptionTier?: SubscriptionTier;
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
@@ -24,7 +50,8 @@ export const authOptions: NextAuthOptions = {
         }
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
+          where: { email: credentials.email },
+          include: { subscription: true }
         });
 
         if (!user) {
@@ -44,6 +71,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id.toString(),
           email: user.email,
           role: user.role,
+          subscriptionTier: user.subscription?.tier
         };
       }
     })
@@ -52,12 +80,15 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
+        token.subscriptionTier = user.subscriptionTier;
       }
       return token;
     },
     async session({ session, token }) {
       if (session?.user) {
         session.user.role = token.role as UserRole;
+        session.user.subscriptionTier = token.subscriptionTier as SubscriptionTier | undefined;
+        session.user.id = token.sub as string;
       }
       return session;
     },
@@ -70,6 +101,5 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-import NextAuth from 'next-auth';
-export const handler = NextAuth(authOptions);
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };

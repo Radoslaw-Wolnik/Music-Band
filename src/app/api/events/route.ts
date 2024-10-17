@@ -1,13 +1,58 @@
 // src/app/api/events/route.ts
 
-import { NextResponse, NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 import prisma from '@/lib/prisma';
 import { UnauthorizedError, BadRequestError } from '@/lib/errors';
 import logger from '@/lib/logger';
-import { Event, UserRole } from '@/types';
-import { getPaginationParams, getPaginationData } from '@/lib/pagination';
+import { UserRole } from '@/types';
+import { eventSchema } from '@/lib/validationSchemas';
+import { getPaginationData, getPaginationParams } from '@/lib/pagination';
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session || session.user.role !== UserRole.MANAGER) {
+      throw new UnauthorizedError('Only managers can create events');
+    }
+
+    const body = await req.json();
+    const validatedData = eventSchema.parse(body);
+
+    const { name, description, date, endDate, venueId, ticketPrices, eventPlan, defaultPhoto, isPatronOnly } = validatedData;
+
+    const event = await prisma.event.create({
+      data: {
+        name,
+        description,
+        date: new Date(date),
+        endDate: new Date(endDate),
+        venueId,
+        ticketPrices,
+        defaultPhoto,
+        isPatronOnly,
+        eventPlan: {
+          create: eventPlan?.map((item: { time: string; name: string }) => ({
+            time: new Date(item.time),
+            name: item.name,
+          })),
+        },
+      },
+      include: { eventPlan: true },
+    });
+
+    logger.info('Event created', { eventId: event.id, managerId: session.user.id });
+    return NextResponse.json(event, { status: 201 });
+  } catch (error) {
+    if (error instanceof UnauthorizedError || error instanceof BadRequestError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    }
+    logger.error('Error creating event', { error });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -39,13 +84,11 @@ export async function GET(req: NextRequest) {
       where.date = { ...where.date, lte: new Date(endDate) };
     }
 
-    const skip = (page - 1) * limit;
-
     const [events, total] = await Promise.all([
       prisma.event.findMany({
         where,
         include: { venue: true },
-        skip,
+        skip: (page - 1) * limit,
         take: limit,
         orderBy: { date: 'asc' },
       }),
@@ -60,52 +103,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     logger.error('Error fetching events', { error });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
-
-export async function POST(req: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || session.user.role !== UserRole.MANAGER) {
-      throw new UnauthorizedError('Only managers can create events');
-    }
-
-    const data = await req.json();
-    const { name, description, date, endDate, venueId, ticketPrices, eventPlan, defaultPhoto, isPatronOnly } = data;
-
-    if (!name || !description || !date || !endDate || !venueId || !ticketPrices) {
-      throw new BadRequestError('Missing required fields');
-    }
-
-    const event = await prisma.event.create({
-      data: {
-        name,
-        description,
-        date: new Date(date),
-        endDate: new Date(endDate),
-        venueId,
-        ticketPrices,
-        defaultPhoto,
-        isPatronOnly,
-        eventPlan: {
-          create: eventPlan.map((item: { time: string; name: string }) => ({
-            time: new Date(item.time),
-            name: item.name,
-          })),
-        },
-      },
-      include: { eventPlan: true },
-    });
-
-    logger.info('Event created', { eventId: event.id, managerId: session.user.id });
-    return NextResponse.json(event, { status: 201 });
-  } catch (error) {
-    if (error instanceof UnauthorizedError || error instanceof BadRequestError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode });
-    }
-    logger.error('Error creating event', { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

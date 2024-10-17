@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import logger from '@/lib/logger';
+import { BadRequestError } from '@/lib/errors';
 
 export async function GET(req: Request) {
   try {
@@ -11,7 +12,7 @@ export async function GET(req: Request) {
     const year = searchParams.get('year');
 
     if (!month || !year) {
-      return NextResponse.json({ error: "Month and year are required" }, { status: 400 });
+      throw new BadRequestError("Month and year are required");
     }
 
     const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
@@ -31,6 +32,9 @@ export async function GET(req: Request) {
 
     return NextResponse.json(events);
   } catch (error) {
+    if (error instanceof BadRequestError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    }
     logger.error('Error fetching calendar events', { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

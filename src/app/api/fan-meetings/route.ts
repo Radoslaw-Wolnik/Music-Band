@@ -17,11 +17,10 @@ export async function GET(req: NextRequest) {
     }
 
     const { page, limit } = getPaginationParams(req);
-    const skip = (page - 1) * limit;
 
     const [fanMeetings, total] = await Promise.all([
       prisma.fanMeeting.findMany({
-        skip,
+        skip: (page - 1) * limit,
         take: limit,
         orderBy: { date: 'asc' },
       }),
