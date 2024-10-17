@@ -1,17 +1,79 @@
-// app/types/custom.ts (or global.ts, depending on what you prefer)
-import { User, Event, BlogPost, Ticket } from './prisma';
+// src/types/custom.ts
 
-// Smaller type excluding sensitive data from User
-export type UserWithoutSensitiveData = Omit<User, 'password' | 'tokens'>;
+import { User, Event, BlogPost, Ticket, UserRole, SubscriptionTier, TicketStatus } from './prisma';
 
-// Basic info for User (for frontend display purposes)
-export type BasicUserInfo = Pick<User, 'id' | 'email' | 'name' | 'profilePicture'>;
+// Basic user info for public display
+export type PublicUserInfo = Pick<User, 'id' | 'username' | 'name' | 'profilePicture' | 'role' | 'createdAt'>;
 
-// Event without plan items (if you don't need them in some contexts)
-export type EventWithoutPlan = Omit<Event, 'eventPlan'>;
+// User info for authenticated users (excludes password and sensitive data)
+export type AuthenticatedUser = Omit<User, 'password' | 'tokens'> & {
+  subscription?: {
+    tier: SubscriptionTier;
+    endDate: Date;
+  };
+};
 
-// BlogPost for public view (no updatedAt field)
-export type BlogPostPublic = Omit<BlogPost, 'updatedAt'>;
+// User info for JWT token payload
+export type JWTPayload = {
+  id: string;
+  email: string;
+  role: UserRole;
+  subscriptionTier?: SubscriptionTier;
+};
 
-// Ticket without price and seat (for frontend display)
-export type SimpleTicket = Pick<Ticket, 'id' | 'status' | 'purchasedAt'>;
+// Event info without sensitive data
+export type PublicEventInfo = Omit<Event, 'ticketPrices'> & {
+  venue: {
+    id: number;
+    name: string;
+    address: string;
+  };
+};
+
+// Event info with ticket prices (for authenticated users)
+export type AuthenticatedEventInfo = PublicEventInfo & {
+  ticketPrices: Record<string, number>;
+};
+
+// Blog post for public view
+export type PublicBlogPost = Omit<BlogPost, 'updatedAt'> & {
+  author: PublicUserInfo;
+};
+
+// Simplified ticket info for user's view
+export type UserTicket = Pick<Ticket, 'id' | 'seat' | 'price' | 'status' | 'purchasedAt'> & {
+  event: Pick<Event, 'id' | 'name' | 'date' | 'endDate'>;
+};
+
+// Subscription info
+export type SubscriptionInfo = {
+  id: number;
+  userId: number;
+  tier: SubscriptionTier;
+  startDate: Date;
+  endDate: Date;
+};
+
+// Notification type
+export type Notification = {
+  id: number;
+  userId: number;
+  message: string;
+  isRead: boolean;
+  createdAt: Date;
+};
+
+// Analytics data type
+export type AnalyticsData = {
+  ticketSales: {
+    totalRevenue: number;
+    totalSold: number;
+  };
+  merchSales: {
+    totalRevenue: number;
+    totalSold: number;
+  };
+  subscriberGrowth: Record<SubscriptionTier, number>;
+};
+
+export { UserRole, SubscriptionTier, TicketStatus };
