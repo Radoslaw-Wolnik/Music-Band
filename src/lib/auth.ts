@@ -4,7 +4,7 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { UnauthorizedError } from './errors';
-import { User, UserRole } from '../types/global';
+import { User, UserRole } from '@/types/prisma';
 
 const prisma = new PrismaClient();
 
