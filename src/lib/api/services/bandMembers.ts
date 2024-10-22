@@ -13,25 +13,23 @@ interface BandMemberProfile {
   bio?: string;
 }
 
-export const bandMemberService = {
-  async getBandMember(id: number): Promise<ApiResponse<BandMemberProfile>> {
-    try {
-      const response = await apiClient.get(`/api/band-members/${id}`);
-      return { data: response.data };
-    } catch (error: any) {
-      return { error: error.response?.data?.error || 'Failed to fetch band member' };
-    }
-  },
+export async function getBandMember(id: number) {
+  try {
+    const response = await apiClient.get(`/api/band-members/${id}`);
+    return { data: response.data };
+  } catch (error: any) {
+    return { error: error.response?.data?.error || 'Failed to fetch band member' };
+  }
+}
 
-  async updateBandMember(id: number, data: {
-    instrument?: string;
-    bio?: string;
-  }): Promise<ApiResponse<BandMemberProfile>> {
-    try {
-      const response = await apiClient.put(`/api/band-members/${id}`, data);
-      return { data: response.data };
-    } catch (error: any) {
-      return { error: error.response?.data?.error || 'Failed to update band member' };
-    }
-  },
-};
+export async function updateBandMember(id: number, data: {
+  instrument?: string;
+  bio?: string;
+}) {
+  try {
+    const response = await apiClient.put(`/api/band-members/${id}`, data);
+    return { data: response.data };
+  } catch (error: any) {
+    return { error: error.response?.data?.error || 'Failed to update band member' };
+  }
+}
