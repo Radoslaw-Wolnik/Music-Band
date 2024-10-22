@@ -1,557 +1,521 @@
-# Band Management System API Documentation
+# API Documentation
 
 ## Table of Contents
 1. [Authentication](#authentication)
-2. [User Management](#user-management)
-3. [Events](#events)
-4. [Tickets](#tickets)
-5. [Merchandise](#merchandise)
-6. [Blog Posts](#blog-posts)
-7. [Band Members](#band-members)
-8. [Fan Meetings](#fan-meetings)
-9. [Subscriptions](#subscriptions)
-10. [Analytics](#analytics)
-11. [Notifications](#notifications)
-12. [Calendar](#calendar)
+2. [Analytics Routes](#analytics-routes)
+3. [Band Member Routes](#band-member-routes)
+4. [Blog Post Routes](#blog-post-routes)
+5. [Calendar Routes](#calendar-routes)
+6. [Event Routes](#event-routes)
+7. [Fan Meeting Routes](#fan-meeting-routes)
+8. [Merchandise Routes](#merchandise-routes)
+9. [Notification Routes](#notification-routes)
+10. [Practice Routes](#practice-routes)
+11. [Subscription Routes](#subscription-routes)
+12. [Ticket Routes](#ticket-routes)
+13. [User Routes](#user-routes)
+14. [Venue Routes](#venue-routes)
 
 ## Authentication
 
-### Register User
-```http
-POST /api/auth/register
-```
-**Body:**
-```typescript
-{
-  email: string;
-  password: string;
-  name: string;
-  surname: string;
-  username: string;
-  role?: UserRole; // Defaults to FAN
-}
-```
-**Response:** `201 Created`
-```typescript
-{
-  message: string;
-  user: {
-    id: number;
-    email: string;
-    username: string;
-    role: UserRole;
-  }
-}
-```
+Most endpoints require authentication via NextAuth.js. Authentication is handled using session tokens. When a user logs in successfully, a session will be created and managed by NextAuth.js.
 
-### Login
-```http
-POST /api/auth/login
+Authentication requirement is indicated for each endpoint as follows:
+- 🔓 No authentication required
+- 🔒 Authentication required
+- 🔑 Manager authentication required
+- 👤 Band member authentication required
+- ⭐ Patron authentication required
+
+## Analytics Routes
+
+### Get Analytics
 ```
-**Body:**
-```typescript
-{
-  email: string;
-  password: string;
-}
-```
-**Response:** `200 OK`
-```typescript
-{
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: UserRole;
-    subscriptionTier?: SubscriptionTier;
-  };
-  token: string;
+🔑 GET /api/analytics
+Query Parameters: { startDate?: string, endDate?: string }
+Response: {
+  ticketSales: {
+    totalRevenue: number,
+    totalSold: number
+  },
+  merchSales: {
+    totalRevenue: number,
+    totalSold: number
+  },
+  subscriberGrowth: Record<SubscriptionTier, number>
 }
 ```
 
-## User Management
+## Band Member Routes
 
-### Get User Profile
-```http
-GET /api/user/profile
+### Get Band Member
 ```
-**Response:** `200 OK`
-```typescript
-{
-  id: number;
-  email: string;
-  name: string;
-  surname: string;
-  username: string;
-  profilePicture?: string;
-  role: UserRole;
-  bandMember?: {
-    id: number;
-    instrument: string;
-    bio: string;
-  };
-  subscription?: {
-    tier: SubscriptionTier;
-    startDate: Date;
-    endDate: Date;
-  };
-}
-```
-
-### Update Profile
-```http
-PUT /api/user/profile
-```
-**Body:**
-```typescript
-{
-  name?: string;
-  profilePicture?: string;
-}
-```
-
-### Upload Profile Picture
-```http
-POST /api/user/profile-picture
-```
-**Body:** `FormData`
-- file: Image file
-
-## Events
-
-### Create Event
-```http
-POST /api/events
-```
-**Body:**
-```typescript
-{
-  name: string;
-  description: string;
-  date: string;
-  endDate: string;
-  venueId: number;
-  ticketPrices: {
-    [key: string]: number;
-  };
-  eventPlan?: {
-    time: string;
-    name: string;
-  }[];
-  defaultPhoto?: string;
-  isPatronOnly: boolean;
-}
-```
-
-### Get Events
-```http
-GET /api/events
-```
-**Query Parameters:**
-- page?: number
-- limit?: number
-- search?: string
-- venueId?: number
-- startDate?: string
-- endDate?: string
-
-**Response:** `200 OK`
-```typescript
-{
-  events: Event[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalCount: number;
-  };
-}
-```
-
-### Get Event Details
-```http
-GET /api/events/{id}
-```
-**Response:** `200 OK`
-```typescript
-{
-  id: number;
-  name: string;
-  description: string;
-  date: Date;
-  endDate: Date;
-  venue: {
-    name: string;
-    address: string;
-    capacity: number;
-  };
-  ticketPrices: {
-    [key: string]: number;
-  };
-  eventPlan: {
-    time: Date;
-    name: string;
-  }[];
-  defaultPhoto?: string;
-  isPatronOnly: boolean;
-}
-```
-
-## Tickets
-
-### Purchase Ticket
-```http
-POST /api/tickets
-```
-**Body:**
-```typescript
-{
-  eventId: number;
-  seat: string;
-  quantity: number;
-}
-```
-
-### Get User Tickets
-```http
-GET /api/tickets
-```
-**Query Parameters:**
-- page?: number
-- limit?: number
-
-**Response:** `200 OK`
-```typescript
-{
-  tickets: {
-    id: number;
-    event: {
-      name: string;
-      date: Date;
-      venue: {
-        name: string;
-        address: string;
-      };
-    };
-    seat: string;
-    price: number;
-    status: TicketStatus;
-    purchasedAt: Date;
-  }[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalCount: number;
-  };
-}
-```
-
-### Group Ticket Purchase
-```http
-POST /api/tickets/group-purchase
-```
-**Body:**
-```typescript
-{
-  eventId: number;
-  purchases: {
-    seat: string;
-    quantity: number;
-  }[];
-}
-```
-
-### Refund Ticket
-```http
-POST /api/tickets/{id}/refund
-```
-
-## Merchandise
-
-### List Merchandise
-```http
-GET /api/merch
-```
-**Response:** `200 OK`
-```typescript
-{
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  stock: number;
-  image?: string;
-}[]
-```
-
-### Purchase Merchandise
-```http
-POST /api/merch/purchase
-```
-**Body:**
-```typescript
-{
-  itemId: number;
-  quantity: number;
-}
-```
-
-## Blog Posts
-
-### Create Blog Post
-```http
-POST /api/blog-posts
-```
-**Body:**
-```typescript
-{
-  title: string;
-  content: string;
-  photos?: string[];
-  videos?: string[];
-  accessTier: SubscriptionTier;
-}
-```
-
-### Get Blog Posts
-```http
-GET /api/blog-posts
-```
-**Query Parameters:**
-- page?: number
-- limit?: number
-- search?: string
-- accessTier?: SubscriptionTier
-
-**Response:** `200 OK`
-```typescript
-{
-  posts: {
-    id: number;
-    title: string;
-    content: string;
-    photos: string[];
-    videos: string[];
-    accessTier: SubscriptionTier;
-    author: {
-      id: number;
-      username: string;
-      profilePicture?: string;
-    };
-    createdAt: Date;
-  }[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalCount: number;
-  };
-}
-```
-
-## Band Members
-
-### Get Band Member Profile
-```http
-GET /api/band-members/{id}
-```
-**Response:** `200 OK`
-```typescript
-{
-  id: number;
-  user: {
-    name: string;
-    username: string;
-    profilePicture?: string;
-  };
-  instrument?: string;
-  bio?: string;
+🔓 GET /api/band-members/:id
+Response: {
+  id: number,
+  user: User,
+  instrument: string,
+  bio: string
 }
 ```
 
 ### Update Band Member Profile
-```http
-PUT /api/band-members/{id}
 ```
-**Body:**
-```typescript
-{
-  instrument?: string;
-  bio?: string;
+👤 PUT /api/band-members/:id
+Body: {
+  instrument?: string,
+  bio?: string
+}
+Response: BandMember
+```
+
+## Blog Post Routes
+
+### Get Blog Posts
+```
+🔓 GET /api/blog-posts
+Query Parameters: {
+  page?: number,
+  limit?: number,
+  search?: string,
+  accessTier?: SubscriptionTier
+}
+Response: {
+  posts: BlogPost[],
+  pagination: PaginationData
 }
 ```
 
-## Fan Meetings
-
-### Create Fan Meeting
-```http
-POST /api/fan-meetings
+### Get Single Blog Post
 ```
-**Body:**
-```typescript
-{
-  date: string;
-  description: string;
-  maxAttendees: number;
+🔓 GET /api/blog-posts/:id
+Response: BlogPost & { user: User }
+```
+
+### Create Blog Post
+```
+🔒 POST /api/blog-posts
+Body: {
+  title: string,
+  content: string,
+  photos?: string[],
+  videos?: string[],
+  accessTier: SubscriptionTier
+}
+Response: BlogPost
+```
+
+### Update Blog Post
+```
+🔒 PUT /api/blog-posts/:id
+Body: {
+  title?: string,
+  content?: string,
+  photos?: string[],
+  videos?: string[],
+  accessTier?: SubscriptionTier
+}
+Response: BlogPost
+```
+
+### Delete Blog Post
+```
+🔒 DELETE /api/blog-posts/:id
+Response: { message: string }
+```
+
+### Upload Blog Post Image
+```
+🔒 POST /api/blog-posts/:id/images
+Body: FormData with 'file' field
+Response: { photos: string[] }
+```
+
+## Calendar Routes
+
+### Get Calendar Events
+```
+🔓 GET /api/calendar
+Query Parameters: { month: string, year: string }
+Response: Event[]
+```
+
+## Event Routes
+
+### Get Events
+```
+🔓 GET /api/events
+Query Parameters: {
+  page?: number,
+  limit?: number,
+  search?: string,
+  venueId?: string,
+  startDate?: string,
+  endDate?: string
+}
+Response: {
+  events: Event[],
+  pagination: PaginationData
 }
 ```
+
+### Get Single Event
+```
+🔓 GET /api/events/:id
+Response: Event & {
+  venue: Venue,
+  eventPlan: EventPlanItem[],
+  tickets: Ticket[]
+}
+```
+
+### Create Event
+```
+🔑 POST /api/events
+Body: {
+  name: string,
+  description: string,
+  date: string,
+  endDate: string,
+  venueId: number,
+  ticketPrices: Record<string, number>,
+  eventPlan?: { time: string, name: string }[],
+  defaultPhoto?: string,
+  isPatronOnly: boolean
+}
+Response: Event
+```
+
+### Update Event
+```
+🔑 PUT /api/events/:id
+Body: {
+  name?: string,
+  description?: string,
+  date?: string,
+  endDate?: string,
+  venueId?: number,
+  ticketPrices?: Record<string, number>,
+  eventPlan?: { time: string, name: string }[],
+  defaultPhoto?: string,
+  isPatronOnly?: boolean
+}
+Response: Event
+```
+
+### Delete Event
+```
+🔑 DELETE /api/events/:id
+Response: { message: string }
+```
+
+### Upload Event Image
+```
+🔑 POST /api/events/:id/images
+Body: FormData with 'file' field
+Response: { defaultPhoto: string }
+```
+
+## Fan Meeting Routes
 
 ### Get Fan Meetings
-```http
-GET /api/fan-meetings
 ```
-**Query Parameters:**
-- page?: number
-- limit?: number
-
-## Subscriptions
-
-### Create Subscription
-```http
-POST /api/subscriptions
-```
-**Body:**
-```typescript
-{
-  tier: SubscriptionTier;
+⭐ GET /api/fan-meetings
+Query Parameters: { page?: number, limit?: number }
+Response: {
+  fanMeetings: FanMeeting[],
+  pagination: PaginationData
 }
 ```
 
-### Update Subscription
-```http
-PUT /api/subscriptions/{id}
+### Create Fan Meeting
 ```
-**Body:**
-```typescript
-{
-  tier: SubscriptionTier;
+🔑 POST /api/fan-meetings
+Body: {
+  date: string,
+  description: string,
+  maxAttendees: number
 }
+Response: FanMeeting
 ```
 
-## Analytics
+## Merchandise Routes
 
-### Get Analytics
-```http
-GET /api/analytics
+### Get Merchandise Items
 ```
-**Query Parameters:**
-- startDate?: string
-- endDate?: string
+🔓 GET /api/merch
+Response: MerchItem[]
+```
 
-**Response:** `200 OK`
-```typescript
-{
-  ticketSales: {
-    totalRevenue: number;
-    totalSold: number;
-  };
-  merchSales: {
-    totalRevenue: number;
-    totalSold: number;
-  };
-  subscriberGrowth: {
-    [SubscriptionTier]: number;
-  };
+### Create Merchandise Item
+```
+🔑 POST /api/merch
+Body: {
+  name: string,
+  description: string,
+  price: number,
+  stock: number,
+  image?: string
 }
+Response: MerchItem
 ```
 
-## Notifications
-
-### Get User Notifications
-```http
-GET /api/notifications
+### Update Merchandise Item
 ```
-**Query Parameters:**
-- page?: number
-- limit?: number
+🔑 PUT /api/merch/:id
+Body: {
+  name?: string,
+  description?: string,
+  price?: number,
+  stock?: number,
+  image?: string
+}
+Response: MerchItem
+```
 
-**Response:** `200 OK`
-```typescript
-{
-  notifications: {
-    id: number;
-    message: string;
-    isRead: boolean;
-    createdAt: Date;
-  }[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalCount: number;
-  };
+### Delete Merchandise Item
+```
+🔑 DELETE /api/merch/:id
+Response: { message: string }
+```
+
+### Purchase Merchandise
+```
+🔒 POST /api/merch/purchase
+Body: {
+  itemId: number,
+  quantity: number
+}
+Response: { message: string, purchaseId: number }
+```
+
+### Upload Merchandise Image
+```
+🔑 POST /api/merch/:id/images
+Body: FormData with 'file' field
+Response: { image: string }
+```
+
+## Notification Routes
+
+### Get Notifications
+```
+🔒 GET /api/notifications
+Query Parameters: { page?: number, limit?: number }
+Response: {
+  notifications: Notification[],
+  pagination: PaginationData
 }
 ```
 
 ### Create Notification
-```http
-POST /api/notifications
 ```
-**Body:**
-```typescript
-{
-  message: string;
-  userIds: number[];
+🔑 POST /api/notifications
+Body: {
+  message: string,
+  userIds: number[]
+}
+Response: { message: string }
+```
+
+## Practice Routes
+
+### Get Practices
+```
+👤 GET /api/practices
+Query Parameters: { page?: number, limit?: number }
+Response: {
+  practices: Practice[],
+  pagination: PaginationData
 }
 ```
 
-## Calendar
-
-### Get Calendar Events
-```http
-GET /api/calendar
+### Schedule Practice
 ```
-**Query Parameters:**
-- month: string
-- year: string
-
-**Response:** `200 OK`
-```typescript
-{
-  id: number;
-  name: string;
-  description: string;
-  date: Date;
-  endDate: Date;
-  venue: {
-    name: string;
-    address: string;
-  };
-}[]
+👤 POST /api/practices
+Body: {
+  date: string,
+  duration: number,
+  notes?: string
+}
+Response: Practice
 ```
 
-## Error Responses
+### Update Practice
+```
+👤 PUT /api/practices/:id
+Body: {
+  date?: string,
+  duration?: number,
+  notes?: string
+}
+Response: Practice
+```
 
-All endpoints may return the following error responses:
+### Delete Practice
+```
+👤 DELETE /api/practices/:id
+Response: { message: string }
+```
 
-### 400 Bad Request
-```typescript
-{
-  error: string;
+## Subscription Routes
+
+### Get Subscription
+```
+🔒 GET /api/subscriptions
+Response: Subscription
+```
+
+### Create Subscription
+```
+🔒 POST /api/subscriptions
+Body: { tier: SubscriptionTier }
+Response: { message: string, purchaseId: number }
+```
+
+### Update Subscription
+```
+🔒 PUT /api/subscriptions/:id
+Body: { tier: SubscriptionTier }
+Response: { message: string, purchaseId: number }
+```
+
+### Cancel Subscription
+```
+🔒 DELETE /api/subscriptions/:id
+Response: { message: string }
+```
+
+## Ticket Routes
+
+### Get User Tickets
+```
+🔒 GET /api/tickets
+Query Parameters: { page?: number, limit?: number }
+Response: {
+  tickets: Ticket[],
+  pagination: PaginationData
 }
 ```
 
-### 401 Unauthorized
-```typescript
-{
-  error: string;
+### Get Ticket Details
+```
+🔒 GET /api/tickets/:id
+Response: FormattedTicket
+```
+
+### Purchase Ticket
+```
+🔒 POST /api/tickets
+Body: {
+  eventId: number,
+  seat: string,
+  quantity: number
+}
+Response: { message: string, purchaseId: number }
+```
+
+### Group Purchase Tickets
+```
+🔒 POST /api/tickets/group-purchase
+Body: {
+  eventId: number,
+  purchases: { seat: string, quantity: number }[]
+}
+Response: { message: string, purchaseId: number }
+```
+
+### Refund Ticket
+```
+🔒 POST /api/tickets/:id/refund
+Response: { message: string }
+```
+
+## User Routes
+
+### Get User Profile
+```
+🔒 GET /api/user/profile
+Response: User & {
+  bandMember?: BandMember,
+  patron?: Patron,
+  tickets: Ticket[],
+  posts: BlogPost[],
+  subscription?: Subscription
 }
 ```
 
-### 403 Forbidden
-```typescript
-{
-  error: string;
+### Update User Profile
+```
+🔒 PUT /api/user/profile
+Body: {
+  name?: string,
+  profilePicture?: string
 }
+Response: User
 ```
 
-### 404 Not Found
-```typescript
-{
-  error: string;
-}
+### Upload Profile Picture
+```
+🔒 POST /api/user/profile-picture
+Body: FormData with 'file' field
+Response: { profilePicture: string }
 ```
 
-### 500 Internal Server Error
-```typescript
-{
-  error: "Internal server error";
+### Search Users
+```
+🔒 GET /api/user/search
+Query Parameters: { q: string }
+Response: User[]
+```
+
+## Venue Routes
+
+### Get Venues
+```
+🔓 GET /api/venues
+Response: Venue[]
+```
+
+### Get Venue Details
+```
+🔓 GET /api/venues/:id
+Response: Venue & { events: Event[] }
+```
+
+### Create Venue
+```
+🔑 POST /api/venues
+Body: {
+  name: string,
+  address: string,
+  capacity: number,
+  layout: object
 }
+Response: Venue
+```
+
+### Update Venue
+```
+🔑 PUT /api/venues/:id
+Body: {
+  name?: string,
+  address?: string,
+  capacity?: number,
+  layout?: object
+}
+Response: Venue
+```
+
+### Delete Venue
+```
+🔑 DELETE /api/venues/:id
+Response: { message: string }
+```
+
+### Update Venue Layout
+```
+🔑 PUT /api/venues/:id/layout
+Body: { layout: object }
+Response: Venue
 ```
